@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#0a0e14">
+<link rel="manifest" href="manifest.json">
+<title>单阳不破 · 工作台</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+:root{
+  --bg:#0a0e14;--card:#141a22;--card2:#1a2029;--line:#232a35;
+  --tx:#e6edf3;--tx2:#8b949e;--tx3:#5a6472;
+  --red:#f04b4b;--green:#2ea043;--amber:#e3a008;--blue:#3b82f6;--purple:#a371f7;
+}
+body{background:var(--bg);color:var(--tx);font:15px/1.5 -apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;
+  padding-bottom:calc(72px + env(safe-area-inset-bottom));overscroll-behavior-y:contain}
+
+/* 顶栏 */
+.hdr{position:sticky;top:0;z-index:20;background:rgba(10,14,20,.94);backdrop-filter:blur(14px);
+  border-bottom:1px solid var(--line);padding:calc(10px + env(safe-area-inset-top)) 16px 10px}
+.hdr-row{display:flex;align-items:center;justify-content:space-between}
+.logo{font-size:16px;font-weight:600;letter-spacing:.3px}
+.logo span{color:var(--tx3);font-size:11px;font-weight:400;margin-left:6px}
+.dot{width:7px;height:7px;border-radius:50%;background:var(--green);display:inline-block;margin-right:6px;
+  animation:bl 2s infinite}
+@keyframes bl{0%,100%{opacity:1}50%{opacity:.25}}
+.stamp{font-size:11px;color:var(--tx3)}
+
+/* 温度卡 */
+.temp{margin:12px 16px 0;border-radius:18px;padding:18px 18px 15px;position:relative;overflow:hidden;
+  border:1px solid var(--line);background:var(--card)}
+.temp::after{content:"";position:absolute;right:-40px;top:-40px;width:150px;height:150px;border-radius:50%;
+  background:radial-gradient(circle,rgba(240,75,75,.18),transparent 70%)}
+.temp.hot{background:linear-gradient(135deg,#1e1214,#141a22 55%)}
+.temp.cold{background:linear-gradient(135deg,#101826,#141a22 55%)}
+.temp.flat{background:linear-gradient(135deg,#1a1710,#141a22 55%)}
+.t-lab{font-size:11.5px;color:var(--tx2);letter-spacing:1.2px}
+.t-main{display:flex;align-items:baseline;gap:10px;margin:4px 0 12px}
+.t-phase{font-size:27px;font-weight:700;letter-spacing:.5px}
+.t-cap{font-size:14px;color:var(--tx2)}
+.t-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.t-item{background:rgba(255,255,255,.035);border-radius:10px;padding:7px 4px;text-align:center}
+.t-item .k{font-size:10px;color:var(--tx3);margin-bottom:2px}
+.t-item .v{font-size:15px;font-weight:600;font-variant-numeric:tabular-nums}
+.idx{display:flex;gap:14px;overflow-x:auto;margin-top:11px;padding-bottom:2px;scrollbar-width:none}
+.idx::-webkit-scrollbar{display:none}
+.idx div{font-size:11.5px;color:var(--tx2);white-space:nowrap}
+.idx em{font-style:normal;font-weight:600;margin-left:4px}
+
+/* 铁律 */
+.iron{margin:12px 16px 0;border:1px solid #3d1f22;background:#16100f;border-radius:14px;overflow:hidden}
+.iron-h{display:flex;align-items:center;justify-content:space-between;padding:11px 15px;font-size:12.5px;
+  color:#f08a8a;font-weight:500}
+.iron-h i{font-style:normal;color:var(--tx3);font-size:11px;transition:.25s}
+.iron.open .iron-h i{transform:rotate(180deg)}
+.iron-b{display:none;padding:0 15px 13px;font-size:12.5px;line-height:1.85;color:var(--tx2)}
+.iron.open .iron-b{display:block}
+.iron-b p{margin:5px 0}
+.iron-b b{color:#f08a8a}
+
+/* Tabs */
+.tabs{position:sticky;top:calc(52px + env(safe-area-inset-top));z-index:15;background:rgba(10,14,20,.94);
+  backdrop-filter:blur(14px);display:flex;gap:6px;padding:11px 16px 9px;overflow-x:auto;scrollbar-width:none}
+.tabs::-webkit-scrollbar{display:none}
+.tab{flex:0 0 auto;padding:7px 14px;border-radius:20px;font-size:13px;color:var(--tx2);
+  background:var(--card);border:1px solid var(--line);white-space:nowrap;transition:.18s}
+.tab.on{background:#2a1215;border-color:#6b2b30;color:#ff7b72;font-weight:500}
+.tab b{font-weight:600;margin-left:3px}
+
+/* 列表 */
+.list{padding:2px 16px 0}
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:14px 15px;margin-bottom:10px;
+  transition:.18s;overflow:hidden}
+.card:active{transform:scale(.985);background:var(--card2)}
+.c-top{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
+.c-name{font-size:16px;font-weight:600;letter-spacing:.2px}
+.c-code{font-size:11px;color:var(--tx3);margin-left:6px;font-weight:400}
+.c-score{font-size:12px;font-weight:600;padding:2px 8px;border-radius:7px;background:#1d2733;color:#79b8ff;
+  font-variant-numeric:tabular-nums;flex:0 0 auto}
+.c-tag{font-size:11.5px;color:var(--tx2);margin-top:4px}
+.c-tag .hl{color:var(--amber)}
+.c-tag .bad{color:var(--red)}
+.c-rule{height:1px;background:var(--line);margin:11px 0 10px}
+.c-kv{display:grid;grid-template-columns:1fr 1fr;gap:7px 12px}
+.kv{display:flex;justify-content:space-between;font-size:12.5px}
+.kv .k{color:var(--tx3)}
+.kv .v{font-weight:600;font-variant-numeric:tabular-nums}
+.pill{display:inline-block;font-size:11px;padding:1px 7px;border-radius:6px;margin-right:5px;margin-top:6px}
+.pill.g{background:#0f2818;color:#4ac26b}
+.pill.b{background:#0f1d33;color:#5aa2ff}
+.pill.o{background:#2b1f0c;color:#e3a008}
+.pill.r{background:#2b1114;color:#ff7b72}
+.pill.n{background:#1a2029;color:var(--tx2)}
+.c-detail{display:none;margin-top:11px;padding-top:10px;border-top:1px dashed var(--line);
+  font-size:12px;line-height:1.8;color:var(--tx2)}
+.card.open .c-detail{display:block}
+.c-detail b{color:var(--tx)}
+
+/* 空态 */
+.empty{text-align:center;padding:56px 20px;color:var(--tx3);font-size:13px;line-height:2}
+.empty .ico{font-size:34px;opacity:.35;margin-bottom:10px}
+
+/* 持仓 / 计算器 */
+.pos{padding:0 16px}
+.pos-row{display:flex;gap:8px;margin-bottom:10px}
+.pos-row input{flex:1;background:var(--card);border:1px solid var(--line);border-radius:11px;
+  padding:11px 13px;color:var(--tx);font-size:15px;outline:none;font-variant-numeric:tabular-nums}
+.pos-row input:focus{border-color:#3d6bff}
+.pos-row input::placeholder{color:var(--tx3)}
+.pos-row button{flex:0 0 86px;background:#2a1215;border:1px solid #6b2b30;color:#ff7b72;border-radius:11px;
+  font-size:14px;font-weight:500}
+.pos-card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:13px 15px;margin-bottom:9px;
+  display:flex;align-items:center;justify-content:space-between}
+.pos-card .l{font-size:14px;font-weight:500}
+.pos-card .s{font-size:11.5px;color:var(--tx3);margin-top:3px}
+.pos-card .r{text-align:right;font-size:13px;font-variant-numeric:tabular-nums}
+.del{color:var(--tx3);font-size:18px;padding:0 4px}
+
+/* 底部刷新 */
+.fab{position:fixed;left:16px;right:16px;bottom:calc(14px + env(safe-area-inset-bottom));z-index:30;
+  background:linear-gradient(135deg,#e63946,#c92a37);border-radius:15px;padding:15px;text-align:center;
+  font-size:15.5px;font-weight:600;color:#fff;box-shadow:0 8px 26px rgba(230,57,70,.34);
+  display:flex;align-items:center;justify-content:center;gap:8px}
+.fab:active{transform:scale(.985)}
+.fab.loading{opacity:.7;pointer-events:none}
+.fab .spin{width:15px;height:15px;border:2px solid rgba(255,255,255,.35);border-top-color:#fff;
+  border-radius:50%;animation:sp .8s linear infinite;display:none}
+.fab.loading .spin{display:block}
+@keyframes sp{to{transform:rotate(360deg)}}
+
+.toast{position:fixed;left:50%;bottom:104px;transform:translateX(-50%) translateY(14px);z-index:40;
+  background:#232a35;color:var(--tx);padding:9px 17px;border-radius:10px;font-size:13px;opacity:0;
+  transition:.25s;pointer-events:none;white-space:nowrap}
+.toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
+
+.foot{text-align:center;font-size:11px;color:var(--tx3);padding:18px 20px 8px;line-height:1.9}
+</style>
+</head>
+<body>
+
+<div class="hdr">
+  <div class="hdr-row">
+    <div class="logo">单阳不破<span>工作台</span></div>
+    <div class="stamp"><i class="dot"></i><span id="stamp">加载中</span></div>
+  </div>
+</div>
+
+<div class="temp" id="tempCard">
+  <div class="t-lab">今日市场温度</div>
+  <div class="t-main">
+    <div class="t-phase" id="phase">—</div>
+    <div class="t-cap" id="cap"></div>
+  </div>
+  <div class="t-grid">
+    <div class="t-item"><div class="k">涨停</div><div class="v" id="lu">—</div></div>
+    <div class="t-item"><div class="k">跌停</div><div class="v" id="ld">—</div></div>
+    <div class="t-item"><div class="k">成交(亿)</div><div class="v" id="amt">—</div></div>
+    <div class="t-item"><div class="k">量能比</div><div class="v" id="vr">—</div></div>
+  </div>
+  <div class="idx" id="idx"></div>
+</div>
+
+<div class="iron" id="iron">
+  <div class="iron-h" onclick="document.getElementById('iron').classList.toggle('open')">
+    <span>今天只执行这三条（点开）</span><i>▾</i>
+  </div>
+  <div class="iron-b">
+    <p>① <b>到价就走</b>——14:50 看一次，破止损线尾盘走。不讨论、不等反弹、不留次日。</p>
+    <p>② <b>止盈按时间</b>——T+1/T+2 不冲高就走，冲高（&gt;8% 未封板）更要走，最长 3 天清。</p>
+    <p>③ <b>仓位封顶</b>——单票 ≤1/5、同时 ≤3 只、<b>亏损一律不加仓</b>、每周新开 ≤2 笔。</p>
+  </div>
+</div>
+
+<div class="tabs" id="tabs">
+  <div class="tab on" data-k="buy">可买<b id="n1">0</b></div>
+  <div class="tab" data-k="watch">观察<b id="n2">0</b></div>
+  <div class="tab" data-k="trend">趋势股<b id="n4">0</b></div>
+  <div class="tab" data-k="pos">持仓</div>
+  <div class="tab" data-k="calc">止损计算</div>
+  <div class="tab" data-k="invalid">失效<b id="n3">0</b></div>
+</div>
+
+<div id="view"></div>
+
+<div class="toast" id="toast"></div>
+<div class="fab" id="fab"><span class="spin"></span><span id="fabTx">刷新数据</span></div>
+
+<script>
+const S={data:null,tab:'buy',pos:JSON.parse(localStorage.getItem('pos')||'[]')};
+const $=id=>document.getElementById(id);
+
+function toast(m){const t=$('toast');t.textContent=m;t.classList.add('on');
+  clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove('on'),1800);}
+
+function fmt(n,d=2){return (n===0||n===''||n==null)?'—':Number(n).toFixed(d);}
+
+async function load(cache){
+  const r=await fetch('data.json?t='+Date.now(),{cache:cache?'force-cache':'no-store'});
+  if(!r.ok) throw new Error('HTTP '+r.status);
+  return await r.json();
+}
+
+function render(){
+  const d=S.data; if(!d){return;}
+  const m=d.meta;
+  $('stamp').textContent='数据 '+m.date.slice(5)+' · '+d.generated.slice(11);
+  $('phase').textContent=m.phase||'—';
+  $('cap').textContent=m.cap?'建议 '+m.cap:'';
+  $('lu').textContent=m.limitup||'—';
+  $('ld').textContent=m.limitdown||'—';
+  $('amt').textContent=m.amount?Number(m.amount).toFixed(0):'—';
+  $('vr').textContent=m.volratio||'—';
+
+  const tc=$('tempCard');
+  tc.className='temp '+(/主升|修复/.test(m.phase)?'hot':/退潮|冰点/.test(m.phase)?'cold':'flat');
+
+  $('idx').innerHTML=(m.index||[]).map(s=>{
+    const mm=s.match(/(.+?)\s*([+-]?[\d.]+%)/);
+    if(!mm) return '';
+    const up=!mm[2].startsWith('-');
+    return `<div>${mm[1]}<em style="color:${up?'var(--red)':'var(--green)'}">${mm[2]}</em></div>`;
+  }).join('');
+
+  $('n1').textContent=d.counts.buy; $('n2').textContent=d.counts.watch;
+  $('n3').textContent=d.counts.invalid; $('n4').textContent=d.counts.trend||0;
+  renderView();
+}
+
+function distPill(x){
+  if(x.dist==null) return '';
+  const v=x.dist;
+  if(v>3) return `<span class="pill o">已离买点 +${v.toFixed(1)}%</span>`;
+  if(v>=0) return `<span class="pill b">买点区 +${v.toFixed(1)}%</span>`;
+  if(v>=-5) return `<span class="pill g">近买点 ${v.toFixed(1)}%</span>`;
+  return `<span class="pill n">等回踩 ${v.toFixed(1)}%</span>`;
+}
+
+function card(x,i){
+  const bad=[];
+  if(x.head&&!/无|顺风|中性/.test(x.head)) bad.push(x.head);
+  if(x.turn&&x.turn>10) bad.push('换手'+x.turn+'%');
+  return `<div class="card" onclick="this.classList.toggle('open')">
+    <div class="c-top">
+      <div>
+        <div class="c-name">${x.name}<span class="c-code">${x.code}</span></div>
+        <div class="c-tag">${x.sector||'—'}${x.shape?' · '+x.shape:''}${x.lock?' · '+x.lock:''}</div>
+      </div>
+      <div class="c-score">v7 ${fmt(x.v7,1)}</div>
+    </div>
+    <div>${distPill(x)}${bad.map(b=>`<span class="pill r">${b}</span>`).join('')}</div>
+    <div class="c-rule"></div>
+    <div class="c-kv">
+      <div class="kv"><span class="k">买点</span><span class="v">${fmt(x.buy)}</span></div>
+      <div class="kv"><span class="k">止损</span><span class="v" style="color:var(--green)">${fmt(x.stop)}</span></div>
+      <div class="kv"><span class="k">止损空间</span><span class="v">${x.stop_pct?x.stop_pct.toFixed(1)+'%':'—'}</span></div>
+      <div class="kv"><span class="k">建议仓位</span><span class="v">${x.pos?x.pos.toFixed(0)+'%':'—'}</span></div>
+    </div>
+    <div class="c-detail">
+      ${x.wash?`洗盘 <b>${x.wash}</b> 天　`:''}${x.volr?`二阳量比 <b>${x.volr}</b>　`:''}${x.window?`窗口 <b>${x.window}</b>`:''}
+      ${x.force?`<br>主力5日 <b>${x.force}</b> 亿`:''}
+      ${x.reason?`<br>失效原因：<b style="color:#ff7b72">${x.reason}</b>`:''}
+      ${x.logic?`<br>${x.logic}`:''}
+      ${x.theme?`<br><span style="color:var(--tx3)">${x.theme}</span>`:''}
+    </div>
+  </div>`;
+}
+
+function trendCard(x){
+  const st=x.state||'', env=x.env||'';
+  let cls='n';
+  if(/强势|可买|放量启动/.test(st)) cls='g';
+  else if(/回调|等待|观察/.test(st)) cls='b';
+  if(/环境压制/.test(st)) cls='o';
+  if(/剔除/.test(st)) cls='n';
+  const envCls=/可买|减半/.test(env)?'g':/观察/.test(env)?'o':'n';
+  const rs=v=>`<span style="color:${v>0?'var(--red)':'var(--green)'}">${v>0?'+':''}${v.toFixed(1)}</span>`;
+  return `<div class="card" onclick="this.classList.toggle('open')">
+    <div class="c-top">
+      <div>
+        <div class="c-name">${x.name}<span class="c-code">${x.code}</span></div>
+        <div class="c-tag">${x.price?x.price.toFixed(2):'—'}
+          <span style="color:${x.chg>0?'var(--red)':'var(--green)'};font-weight:600;margin-left:6px">
+            ${x.chg>0?'+':''}${x.chg.toFixed(2)}%</span></div>
+      </div>
+      <div class="c-score">${x.score.toFixed(1)}</div>
+    </div>
+    <div><span class="pill ${cls}">${st||'—'}</span>
+      <span class="pill ${envCls}">环境 ${env||'—'}</span></div>
+    <div class="c-rule"></div>
+    <div class="c-kv">
+      <div class="kv"><span class="k">RS5</span><span class="v">${rs(x.rs5)}</span></div>
+      <div class="kv"><span class="k">RS20</span><span class="v">${rs(x.rs20)}</span></div>
+      <div class="kv"><span class="k">RS40</span><span class="v">${rs(x.rs40)}</span></div>
+      <div class="kv"><span class="k">量比</span><span class="v">${x.vr.toFixed(2)}x</span></div>
+      <div class="kv"><span class="k">20日换手</span><span class="v">${x.turn.toFixed(1)}%</span></div>
+      <div class="kv"><span class="k">距60日高</span><span class="v">${x.dd60.toFixed(1)}%</span></div>
+    </div>
+    <div class="c-detail">
+      距 250 日高 <b>${x.dd250.toFixed(1)}%</b>
+      ${x.env_note?`<br>${x.env_note}`:''}
+      <br><span style="color:var(--tx3)">趋势股＝底部放量/回调后放量启动；RS 是相对强弱，越大越强</span>
+    </div>
+  </div>`;
+}
+
+function renderView(){
+  const d=S.data,v=$('view');
+  if(S.tab==='pos'){return renderPos();}
+  if(S.tab==='calc'){return renderCalc();}
+  if(S.tab==='trend'){
+    const tr=d.trend||[];
+    if(!tr.length){v.innerHTML=`<div class="empty"><div class="ico">○</div>还没有趋势股数据<br><span style="font-size:11.5px">去电脑上跑一次 pattern_b_screener.py</span></div>`;return;}
+    v.innerHTML=`<div style="padding:0 16px 8px;font-size:11.5px;color:var(--tx3)">
+      趋势股 · 数据 ${d.trend_date||'—'} · 共 ${tr.length} 只（点卡片看详情）</div>`
+      +'<div class="list">'+tr.map(trendCard).join('')+'</div>';
+    return;
+  }
+  const arr=d[S.tab]||[];
+  if(!arr.length){v.innerHTML=`<div class="empty"><div class="ico">○</div>这一栏今天没有票<br><span style="font-size:11.5px">空池是正常结果，不是故障</span></div>`;return;}
+  v.innerHTML='<div class="list">'+arr.map(card).join('')+'</div>';
+}
+
+function renderPos(){
+  const v=$('view');
+  v.innerHTML=`<div class="pos">
+    <div class="pos-row">
+      <input id="pc" placeholder="代码" inputmode="numeric" maxlength="6">
+      <input id="px" placeholder="成本价" inputmode="decimal">
+      <button onclick="addPos()">加入</button>
+    </div>
+    ${S.pos.length?S.pos.map((p,i)=>{
+      const stop=(p.px*0.92).toFixed(2);
+      return `<div class="pos-card">
+        <div><div class="l">${p.code}</div><div class="s">成本 ${p.px}　止损线 92%</div></div>
+        <div class="r"><b style="color:var(--green);font-size:17px">${stop}</b>
+          <div class="s delete" style="font-size:11px;color:var(--tx3)" onclick="delPos(${i})">删除</div></div>
+      </div>`;}).join(''):
+      `<div class="empty"><div class="ico">◇</div>还没有持仓<br><span style="font-size:11.5px">输入成本，自动算出止损价</span></div>`}
+    ${S.pos.length?`<div style="font-size:11.5px;color:var(--tx3);line-height:1.9;padding:6px 2px 0">
+      止损价 = 成本 × 0.92（−8%）。<b style="color:#f08a8a">技术位优先</b>：如果买入时有首阳收盘价或破位线，用它 × 0.99，比 −8% 准。</div>`:''}
+  </div>`;
+}
+
+function addPos(){
+  const c=$('pc').value.trim(),p=parseFloat($('px').value);
+  if(!/^\d{6}$/.test(c)||!p||p<=0){toast('请输入 6 位代码和成本价');return;}
+  S.pos.push({code:c,px:p});
+  localStorage.setItem('pos',JSON.stringify(S.pos));
+  toast('已加入');renderPos();
+}
+function delPos(i){S.pos.splice(i,1);localStorage.setItem('pos',JSON.stringify(S.pos));renderPos();}
+
+function renderCalc(){
+  $('view').innerHTML=`<div class="pos">
+    <div class="pos-row">
+      <input id="cc" placeholder="成本价" inputmode="decimal">
+      <button onclick="doCalc()">计算</button>
+    </div>
+    <div id="cres"></div>
+    <div style="background:var(--card);border:1px solid var(--line);border-radius:14px;padding:15px;margin-top:10px;
+      font-size:12.5px;line-height:2;color:var(--tx2)">
+      <b style="color:var(--tx)">止损怎么定（优先级从高到低）</b><br>
+      ① 首阳收盘价 × 0.99<br>
+      ② 首阳实体中部 × 0.99<br>
+      ③ 前期平台低点下方 1%<br>
+      ④ 以上都没有 → 成本 × 0.92（兜底，最差选择）<br>
+      <span style="color:#f08a8a">−8% 是心理位，市场不知道你的成本。</span>
+    </div>
+  </div>`;
+}
+function doCalc(){
+  const c=parseFloat($('cc').value);
+  if(!c||c<=0){toast('输入成本价');return;}
+  const s=c*0.92, amt=c*0.2;
+  $('cres').innerHTML=`<div style="background:var(--card);border:1px solid var(--line);border-radius:14px;
+    padding:17px 15px">
+    <div style="display:flex;justify-content:space-between;align-items:baseline">
+      <span style="font-size:13px;color:var(--tx2)">止损价（−8%）</span>
+      <span style="font-size:26px;font-weight:700;color:var(--green)">${s.toFixed(2)}</span>
+    </div>
+    <div style="display:flex;justify-content:space-between;margin-top:9px;font-size:12.5px;color:var(--tx2)">
+      <span>单票上限 1/5（7万账户）</span><span style="font-weight:600;color:var(--tx)">${amt.toFixed(0)} 元</span>
+    </div>
+    <div style="display:flex;justify-content:space-between;margin-top:5px;font-size:12.5px;color:var(--tx2)">
+      <span>触发后单笔亏损</span><span style="font-weight:600;color:#ff7b72">${(amt*0.08).toFixed(0)} 元</span>
+    </div>
+  </div>`;
+}
+
+// 事件
+$('tabs').addEventListener('click',e=>{
+  const t=e.target.closest('.tab'); if(!t) return;
+  S.tab=t.dataset.k;
+  [...document.querySelectorAll('.tab')].forEach(x=>x.classList.toggle('on',x===t));
+  renderView();
+});
+
+async function refresh(){
+  const f=$('fab'); f.classList.add('loading'); $('fabTx').textContent='刷新中…';
+  try{
+    S.data=await load(false);
+    render();
+    toast('已刷新 · '+S.data.generated.slice(11));
+    if(navigator.vibrate) navigator.vibrate(12);
+  }catch(e){
+    toast('刷新失败：'+(e.message||'检查电脑端是否启动'));
+  }finally{
+    f.classList.remove('loading'); $('fabTx').textContent='刷新数据';
+  }
+}
+$('fab').addEventListener('click',refresh);
+
+// 启动
+(async()=>{
+  try{
+    S.data=await load(true);
+    render();
+  }catch(e){
+    try{S.data=await load(false);render();}
+    catch(e2){
+      $('view').innerHTML=`<div class="empty"><div class="ico">!</div>
+        读不到 data.json<br><span style="font-size:11.5px">确认电脑端服务已启动，再点下方刷新</span></div>`;
+    }
+  }
+})();
+
+if('serviceWorker' in navigator){
+  navigator.serviceWorker.register('sw.js').catch(()=>{});
+}
+</script>
+</body>
+</html>
