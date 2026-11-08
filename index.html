@@ -206,7 +206,11 @@ async function load(cache){
 function render(){
   const d=S.data; if(!d){return;}
   const m=d.meta;
-  $('stamp').textContent='数据 '+m.date.slice(5)+' · '+d.generated.slice(11);
+  const today=new Date().toISOString().slice(0,10);
+  const fresh=(m.date===today);
+  $('stamp').innerHTML=(m.date||'').slice(5)+' 行情 <span style="opacity:.6">·</span> '+
+    (d.generated||'').slice(5)+
+    (fresh?'':' <span style="color:#e3a008">（不是今天）</span>');
   $('phase').textContent=m.phase||'—';
   $('cap').textContent=m.cap?'建议 '+m.cap:'';
   $('lu').textContent=m.limitup||'—';
