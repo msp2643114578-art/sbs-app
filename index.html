@@ -178,6 +178,7 @@ body{background:var(--bg);color:var(--tx);font:15px/1.5 -apple-system,BlinkMacSy
   <div class="tab on" data-k="buy">可买<b id="n1">0</b></div>
   <div class="tab" data-k="watch">观察<b id="n2">0</b></div>
   <div class="tab" data-k="trend">趋势股<b id="n4">0</b></div>
+  <div class="tab" data-k="stat">统计</div>
   <div class="tab" data-k="pos">持仓</div>
   <div class="tab" data-k="calc">止损计算</div>
   <div class="tab" data-k="invalid">失效<b id="n3">0</b></div>
@@ -310,10 +311,106 @@ function trendCard(x){
   </div>`;
 }
 
+const PHASE_V={'冰点期':0,'退潮期':1,'平衡/观望':2,'修复期':3,'主升期':4,'高潮期':4};
+const PHASE_C=['#3b82f6','#5a6472','#8b949e','#e3a008','#f04b4b','#f04b4b'];
+
+function svgLine(data,opt){
+  // data:[{d,v}], opt:{w,h,min,max,color,dots}
+  const w=opt.w||330,h=opt.h||120,pad=6;
+  const vals=data.map(x=>x.v);
+  const mn=opt.min!==undefined?opt.min:Math.min(...vals);
+  const mx=opt.max!==undefined?opt.max:Math.max(...vals);
+  const rng=(mx-mn)||1;
+  const X=i=>pad+i*(w-pad*2)/Math.max(1,data.length-1);
+  const Y=v=>h-pad-((v-mn)/rng)*(h-pad*2);
+  let pts=data.map((x,i)=>X(i)+','+Y(x.v)).join(' ');
+  let s=`<svg viewBox="0 0 ${w} ${h}" width="100%" style="display:block">`;
+  // 网格
+  for(let g=0;g<=3;g++){const y=pad+g*(h-pad*2)/3;
+    s+=`<line x1="${pad}" y1="${y}" x2="${w-pad}" y2="${y}" stroke="#232a35" stroke-width="1"/>`;}
+  s+=`<polyline points="${pts}" fill="none" stroke="${opt.color||'#79b8ff'}" stroke-width="2" stroke-linejoin="round"/>`;
+  data.forEach((x,i)=>{
+    const c=opt.dotColor?opt.dotColor(x):(opt.color||'#79b8ff');
+    s+=`<circle cx="${X(i)}" cy="${Y(x.v)}" r="${opt.dots||3.2}" fill="${c}"/>`;
+  });
+  s+='</svg>';
+  return s;
+}
+
+function barRow(items,opt){
+  const mx=Math.max(...items.map(x=>x.c))||1;
+  return items.map(x=>`<div style="display:flex;align-items:center;gap:9px;margin:7px 0">
+    <div style="flex:0 0 72px;font-size:12px;color:var(--tx2);text-align:right;overflow:hidden;
+      text-overflow:ellipsis;white-space:nowrap">${x.n}</div>
+    <div style="flex:1;height:16px;background:#1a2029;border-radius:4px;overflow:hidden">
+      <div style="width:${(x.c/mx*100).toFixed(0)}%;height:100%;background:${opt.color||'#e63946'};
+        border-radius:4px;transition:.4s"></div></div>
+    <div style="flex:0 0 26px;font-size:12px;font-weight:600;font-variant-numeric:tabular-nums">${x.c}</div>
+  </div>`).join('');
+}
+
+function renderStats(){
+  const d=S.data,st=d.stats||{},tl=st.timeline||[],se=st.sectors||[];
+  const v=$('view');
+  if(!tl.length&&!se.length){
+    v.innerHTML=`<div class="empty"><div class="ico">○</div>还没有统计数据</div>`;return;
+  }
+  const last20=tl.slice(-20);
+  const pv=last20.map(x=>({d:x.date,v:PHASE_V[x.phase]!==undefined?PHASE_V[x.phase]:2}));
+  const ratio=last20.map(x=>{
+    const t=(x.buy+x.watch)||1;
+    return {d:x.date,v:Math.round(x.buy/t*100)};
+  });
+
+  // 温度分布统计
+  const cnt={};
+  tl.forEach(x=>{cnt[x.phase]=(cnt[x.phase]||0)+1;});
+  const cntArr=Object.entries(cnt).sort((a,b)=>b[1]-a[1]);
+
+  v.innerHTML=`<div style="padding:2px 16px 0">
+
+    <div class="card" style="padding:15px 15px 12px">
+      <div style="font-size:13.5px;font-weight:600;margin-bottom:3px">情绪温度走势</div>
+      <div style="font-size:11px;color:var(--tx3);margin-bottom:9px">最近 ${pv.length} 个交易日 · 越红越热</div>
+      ${svgLine(pv,{h:110,min:0,max:4,color:'#2d333b',dots:4,
+        dotColor:x=>PHASE_C[x.v]})}
+      <div style="display:flex;justify-content:space-between;font-size:10.5px;color:var(--tx3);margin-top:5px">
+        <span>${pv[0]?.d.slice(5)||''}</span><span>${pv[pv.length-1]?.d.slice(5)||''}</span>
+      </div>
+    </div>
+
+    <div class="card" style="padding:15px">
+      <div style="font-size:13.5px;font-weight:600;margin-bottom:3px">可买占候选的比例</div>
+      <div style="font-size:11px;color:var(--tx3);margin-bottom:9px">比例高＝当天筛得松，比例低＝筛得紧</div>
+      ${svgLine(ratio,{h:96,min:0,max:Math.max(30,...ratio.map(x=>x.v)),color:'#2ea043',dots:2.6})}
+      <div style="display:flex;justify-content:space-between;font-size:10.5px;color:var(--tx3);margin-top:5px">
+        <span>${ratio[0]?.d.slice(5)||''}</span><span>${ratio[ratio.length-1]?.d.slice(5)||''}</span>
+      </div>
+    </div>
+
+    <div class="card" style="padding:15px">
+      <div style="font-size:13.5px;font-weight:600;margin-bottom:3px">今天可买的板块分布</div>
+      <div style="font-size:11px;color:var(--tx3);margin-bottom:11px">共 ${d.counts.buy} 只 · ${se.length} 个板块</div>
+      ${se.length?barRow(se.map(x=>({n:x.name,c:x.count}))):'<div style="color:var(--tx3);font-size:12px">无</div>'}
+    </div>
+
+    <div class="card" style="padding:15px">
+      <div style="font-size:13.5px;font-weight:600;margin-bottom:11px">这段时间的温度分布</div>
+      ${barRow(cntArr.map(x=>({n:x[0],c:x[1]})),{color:'#a371f7'})}
+      <div style="font-size:11px;color:var(--tx3);margin-top:9px;line-height:1.8">
+        ${tl.length} 个交易日里，${cntArr[0]?cntArr[0][0]:'—'} 出现最多（${cntArr[0]?cntArr[0][1]:0} 天）。
+        冰点/退潮越多，说明这段时间越难做。
+      </div>
+    </div>
+
+  </div>`;
+}
+
 function renderView(){
   const d=S.data,v=$('view');
   if(S.tab==='pos'){return renderPos();}
   if(S.tab==='calc'){return renderCalc();}
+  if(S.tab==='stat'){return renderStats();}
   if(S.tab==='trend'){
     const tr=d.trend||[];
     if(!tr.length){v.innerHTML=`<div class="empty"><div class="ico">○</div>还没有趋势股数据<br><span style="font-size:11.5px">去电脑上跑一次 pattern_b_screener.py</span></div>`;return;}
