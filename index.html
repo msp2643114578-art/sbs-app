@@ -176,6 +176,7 @@ body{background:var(--bg);color:var(--tx);font:15px/1.5 -apple-system,BlinkMacSy
 
 <div class="tabs" id="tabs">
   <div class="tab on" data-k="buy">可买<b id="n1">0</b></div>
+  <div class="tab" data-k="near">临门<b id="n5">0</b></div>
   <div class="tab" data-k="watch">观察<b id="n2">0</b></div>
   <div class="tab" data-k="trend">趋势股<b id="n4">0</b></div>
   <div class="tab" data-k="stat">统计</div>
@@ -231,6 +232,7 @@ function render(){
 
   $('n1').textContent=d.counts.buy; $('n2').textContent=d.counts.watch;
   $('n3').textContent=d.counts.invalid; $('n4').textContent=d.counts.trend||0;
+  $('n5').textContent=d.counts.near||0;
   renderView();
 }
 
@@ -406,11 +408,48 @@ function renderStats(){
   </div>`;
 }
 
+function nearCard(x){
+  const p=x.pos_vs_first||0;
+  const pill=p>=0?`<span class="pill g">距首阳 +${p.toFixed(1)}%</span>`
+                 :`<span class="pill b">距首阳 ${p.toFixed(1)}%</span>`;
+  return `<div class="card" onclick="this.classList.toggle('open')" style="border-color:#5c4a1a">
+    <div class="c-top">
+      <div>
+        <div class="c-name">${x.name}<span class="c-code">${x.code}</span></div>
+        <div class="c-tag">${x.sector||'—'}${x.shape?' · '+x.shape:''}</div>
+      </div>
+      <div class="c-score">v7 ${fmt(x.v7,1)}</div>
+    </div>
+    <div>${pill}<span class="pill o">洗盘 ${x.wash} 天</span><span class="pill n">换手 ${fmt(x.wash_turn,1)}%</span></div>
+    <div class="c-rule"></div>
+    <div class="c-kv">
+      <div class="kv"><span class="k">买点</span><span class="v">${fmt(x.buy)}</span></div>
+      <div class="kv"><span class="k">止损</span><span class="v" style="color:var(--green)">${fmt(x.stop)}</span></div>
+      <div class="kv"><span class="k">首阳涨幅</span><span class="v">${x.first_pct?x.first_pct.toFixed(1)+'%':'—'}</span></div>
+      <div class="kv"><span class="k">止损空间</span><span class="v">${x.stop_pct?x.stop_pct.toFixed(1)+'%':'—'}</span></div>
+    </div>
+    <div class="c-detail">
+      <b style="color:#e3a008">形态已到位，就差一根放量阳线。</b><br>
+      首阳涨停 + 洗盘 ${x.wash} 天（≤3天或6~7天）+ 守住首阳收盘 + 洗盘期换手 ${fmt(x.wash_turn,1)}%（&lt;8%）。<br>
+      ${x.logic||''}
+    </div>
+  </div>`;
+}
+
 function renderView(){
   const d=S.data,v=$('view');
   if(S.tab==='pos'){return renderPos();}
   if(S.tab==='calc'){return renderCalc();}
   if(S.tab==='stat'){return renderStats();}
+  if(S.tab==='near'){
+    const nr=d.near||[];
+    if(!nr.length){v.innerHTML=`<div class="empty"><div class="ico">◎</div>今天没有临门一脚<br><span style="font-size:11.5px">形态到位的票今天没出现</span></div>`;return;}
+    v.innerHTML=`<div style="padding:0 16px 8px;font-size:11.5px;color:var(--tx3);line-height:1.7">
+      <b style="color:#e3a008">临门一脚 · ${nr.length} 只</b>　首阳涨停 + 缩量洗盘 + 守住买点区，<b>就差一根放量阳线</b>。
+      这类票常因板块逆风没进可买清单，但形态最接近触发——放自选第一排盯。</div>`
+      +'<div class="list">'+nr.map(nearCard).join('')+'</div>';
+    return;
+  }
   if(S.tab==='trend'){
     const tr=d.trend||[];
     if(!tr.length){v.innerHTML=`<div class="empty"><div class="ico">○</div>还没有趋势股数据<br><span style="font-size:11.5px">去电脑上跑一次 pattern_b_screener.py</span></div>`;return;}
