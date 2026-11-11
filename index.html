@@ -290,12 +290,14 @@ function trendCard(x){
         <div class="c-name">${x.name}<span class="c-code">${x.code}</span></div>
         <div class="c-tag">${x.price?x.price.toFixed(2):'—'}
           <span style="color:${x.chg>0?'var(--red)':'var(--green)'};font-weight:600;margin-left:6px">
-            ${x.chg>0?'+':''}${x.chg.toFixed(2)}%</span></div>
+            ${x.chg>0?'+':''}${x.chg.toFixed(2)}%</span>${x.cap?`<span style="margin-left:8px;color:var(--tx3)">${
+            x.cap>=10000?(x.cap/10000).toFixed(2)+'万亿':Math.round(x.cap)+'亿'}</span>`:''}</div>
       </div>
       <div class="c-score">${x.score.toFixed(1)}</div>
     </div>
     <div><span class="pill ${cls}">${st||'—'}</span>
-      <span class="pill ${envCls}">环境 ${env||'—'}</span></div>
+      <span class="pill ${envCls}">环境 ${env||'—'}</span>
+      ${x.big==='大盘启动'?`<span class="pill g">🚀 大盘启动</span>`:''}</div>
     <div class="c-rule"></div>
     <div class="c-kv">
       <div class="kv"><span class="k">RS5</span><span class="v">${rs(x.rs5)}</span></div>
@@ -308,6 +310,7 @@ function trendCard(x){
     <div class="c-detail">
       距 250 日高 <b>${x.dd250.toFixed(1)}%</b>
       ${x.env_note?`<br>${x.env_note}`:''}
+      ${x.big==='大盘启动'?`<br><b style="color:#e3a008">🏛 大盘档已启动</b>：流通市值≥300亿，按放宽阈值判定（换手≥2.5%、量比≥1.15、前5/20≤1.7）。大票换手天生低，原 5% 门槛会把它们整批挡掉——这一栏就是补这个缺口。`:(x.big==='大盘观察'?`<br><span style="color:var(--tx3)">🏛 大盘档·观察中（底部已成立，还未放量触发）</span>`:'')}
       <br><span style="color:var(--tx3)">趋势股＝底部放量/回调后放量启动；RS 是相对强弱，越大越强</span>
     </div>
   </div>`;
@@ -453,8 +456,9 @@ function renderView(){
   if(S.tab==='trend'){
     const tr=d.trend||[];
     if(!tr.length){v.innerHTML=`<div class="empty"><div class="ico">○</div>还没有趋势股数据<br><span style="font-size:11.5px">去电脑上跑一次 pattern_b_screener.py</span></div>`;return;}
+    const nBig=tr.filter(x=>x.big==='大盘启动').length;
     v.innerHTML=`<div style="padding:0 16px 8px;font-size:11.5px;color:var(--tx3)">
-      趋势股 · 数据 ${d.trend_date||'—'} · 共 ${tr.length} 只（点卡片看详情）</div>`
+      趋势股 · 数据 ${d.trend_date||'—'} · 共 ${tr.length} 只${nBig?` · <b style="color:#e3a008">🏛 大盘启动 ${nBig} 只</b>`:''}（点卡片看详情）</div>`
       +'<div class="list">'+tr.map(trendCard).join('')+'</div>';
     return;
   }
